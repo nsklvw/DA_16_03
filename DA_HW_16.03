@@ -1,0 +1,184 @@
+set search_path to lessons_database;
+
+
+задача 1. общая выручка по категориям товаров
+	
+select 	
+	t1.category_name,
+	sum(t3.quantity * t3.unit_price) as total_sales
+from product_categories as t1
+	join products as t2
+		on t1.category_id = t2.category_id
+	join order_items as t3
+		on t2.product_id = t3.product_id
+group by category_name;
+
+задача 2. клиент с наибольшей суммой заказов
+
+select 
+	t1.name,
+	sum(t3.quantity * t3.unit_price) as total_spent
+from customers as t1
+	join orders as t2
+		on t1.customer_id = t2.customer_id 
+	join order_items as t3
+		on t2.order_id = t3.order_id
+group by t1.name
+order by total_spent desc
+limit 1;
+
+задача 3.количество заказов по регионам
+(запуталась жестко, что там с чем связывается. выглядит странно, но вдруг)
+
+select 
+	t1.region_name,
+	count(*) as order_count
+from regions as t1
+	join countries as t2
+		on t1.region_id = t2.region_id
+	left join locations as t3
+		on t2.country_id = t3.country_id
+	left join customers as t4
+		on t3.address = t4.address
+	left join orders as t5
+		on t4.customer_id = t5.customer_id
+	group by t1.region_name;
+
+задача 4. средняя стоимость заказа по продавцам
+
+select 
+	t1.first_name,
+	t1.last_name,
+	avg(t3.quantity * t3.unit_price)
+from employees as t1
+	join orders as t2
+		on t2.salesman_id = t1.employee_id
+	join order_items as t3
+		on t2.order_id = t3.order_id
+group by t1.first_name, t1.last_name;
+	
+задача 5. количество товаров на складе по городам
+
+select
+	t3.city,
+    sum(t4.total_quantity) as total_quantity
+from locations as t3
+left join (
+    select 
+        t1.location_id,
+        t2.total_quantity
+    from warehouses as t1
+    left join (
+        select 
+            warehouse_id,
+            sum(quantity) as total_quantity
+        from inventories
+        group by warehouse_id
+    ) as t2
+    on t1.warehouse_id = t2.warehouse_id
+) as t4
+on t3.location_id = t4.location_id
+group by t3.city; 
+
+задача 6. самый продаваемый товар в каждой категории
+
+select 	
+	t1.category_name,
+	t2.product_name,
+	t3.total_qty
+from product_categories as t1
+
+join products as t2
+on t1.category_id = t2.category_id
+
+join (
+	select 
+		product_id,
+		sum(quantity) as total_qty
+	from order_items
+	group by product_id
+) as t3
+on t2.product_id = t3.product_id
+
+join (
+	select
+		t1.category_id,
+		max(t3.total_qty) as max_qty
+	from products as t1
+	join (
+		select 
+			product_id,
+			sum(quantity) as total_qty
+		from order_items
+		group by product_id
+	) as t3
+		on t1.product_id = t3.product_id
+	group by t1.category_id
+) as t4
+on t1.category_id = t4.category_id
+and t3.total_qty = t4.max_qty;
+
+задача 7.дорогие и дешевые товары
+
+select
+	order_id,
+	
+	sum(case when unit_price < 100 then 1 else 0 end) as cheap_items,
+	sum(case when unit_price between 100 and 500 then 1 else 0 end) as mid_items,
+	sum(case when unit_price > 500 then 1 else 0 end) as expensive_items
+	
+from order_items
+group by order_id;
+	
+задача 8. активность клиентов
+
+select
+	t1.customer_id as name,
+	max(case when t1.customer_id = t2.customer_id then 1 else 0 end) as has_orders,
+	max(case when t2.status = 'Canceled' then 1 else 0 end) as has_cancelled
+from customers as t1
+left join orders as t2
+on t1.customer_id = t2.customer_id
+group by t1.customer_id;
+
+задача 9. продажи с прибылью и без
+
+select 
+	t1.product_name,
+	sum(case when t2.unit_price > t1.standard_cost then 1 else 0 end) as profitable_sales,
+	sum(case when t2.unit_price <= t1.standard_cost then 1 else 0 end) as non_profitable_sales
+from products as t1
+join order_items as t2
+on t1.product_id = t2.product_id
+group by t1.product_name;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
