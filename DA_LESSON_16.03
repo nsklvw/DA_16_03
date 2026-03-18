@@ -1,0 +1,121 @@
+set search_path to lessons_database;
+
+select * from employees;
+
+-- написать запрос, который выводит имя и фамилию сотрудников, которые являются менеджерами
+
+select 
+	first_name, 
+	last_name
+from employees
+where employee_id in (
+	select distinct manager_id
+	from employees
+);
+
+-- написать запрос, который выводит имя и фамилию сотрудников, которые не являются менеджерами
+
+select *
+from employees
+where employee_id not in (
+	select manager_id 
+	from employees
+	where manager_id is not null
+);
+
+-- написать запрос, который выводит ид менеджера и количество его сотрудников
+
+select manager_id,
+count(employee_id) as cnt
+from employees
+where manager_id is not null
+group by manager_id;
+
+-- найти среднее колво сотрудников у одного менеджера
+
+select 
+	round(avg(cnt)) as avg
+from (
+	select 
+		manager_id,
+		count(employee_id) as cnt
+	from employees
+	where manager_id is not null
+	group by manager_id
+	) t1;
+
+-- нвписать запрос, который выводит статус и количество заказов в этом статусе
+
+select distinct status from orders;
+
+select 
+	status,
+	count(*) as cnt
+from orders
+group by status;
+
+-- написать запрос, который выводит статус с максимальным количеством соответствующих заказов
+
+-- 1) найти максимальное количество заказов
+
+
+select 
+	max(cnt) as maxcnt
+from (
+	select 
+		count(*) as cnt
+	from orders
+	group by status
+) as t1;
+
+-- 2) вывести статус, у которого cnt равен максимальному cnt
+
+select 
+	status
+from orders
+group by status
+having count(*) = (
+	select 
+		max(cnt) as maxcnt
+	from (
+		select 
+			count(*) as cnt
+		from orders
+		group by status
+	) as t1
+);
+
+-- написать запрос, который находит количество pending, canceled, shipped для каждого покупателя
+
+select * from orders;
+
+select customer_id,
+		case 
+			when status = 'Pending' then 1 else 0
+		end as Pending, 
+		case 
+			when status = 'Canceled' then 1 else 0
+		end as Canceled, 
+		case 
+			when status = 'Shipped' then 1 else 0
+		end as Shipped
+from orders
+group by customer_id, status;
+	
+
+select customer_id,
+	sum(
+		case 
+			when status = 'Pending' then 1 else 0
+		end) as Pending, 
+	sum(
+		case 
+			when status = 'Canceled' then 1 else 0
+		end) as Canceled, 
+	sum(
+		case 
+			when status = 'Shipped' then 1 else 0
+		end) as Shipped
+from orders
+group by customer_id;
+
